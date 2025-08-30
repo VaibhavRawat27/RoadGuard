@@ -6,6 +6,14 @@
 <h2>Request #{{ req.id }} - {{ req.title }}</h2>
 
 <div class="request-details">
+  {% if req.image %}
+    <div style="text-align:center; margin-bottom:16px;">
+      <img src="{{ url_for('static', filename='uploads/' ~ req.image) }}" 
+           alt="Request Image" 
+           style="max-width:100%; height:auto; border-radius:12px;">
+    </div>
+  {% endif %}
+
   <p><strong>Title:</strong> {{ req.title }}</p>
   <p><strong>Issue Type:</strong> {{ req.issue_type if req.issue_type else 'N/A' }}</p>
   <p><strong>Description:</strong> {{ req.description }}</p>

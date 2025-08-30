@@ -1,25 +1,31 @@
-{% extends 'layout.html' %}
-{% block title %}New Request{% endblock %}
-{% block content %}
-<h2>Raise Service Request</h2>
-<form method="post">
-  <label>Car Info</label><input name="title" required><br>
-  <label>Description</label><textarea name="description"></textarea><br>
-  <input type="hidden" name="lat" id="lat">
-  <input type="hidden" name="lng" id="lng">
-  <p>Click on map to set location:</p>
-  <div id="map" style="height:400px"></div>
-  <button type="submit">Submit</button>
-</form>
-<script>
-var map = L.map('map').setView([28.7041,77.1025], 11);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19}).addTo(map);
-var marker;
-map.on('click', function(e){
-    if(marker) map.removeLayer(marker);
-    marker = L.marker(e.latlng).addTo(map);
-    document.getElementById('lat').value = e.latlng.lat;
-    document.getElementById('lng').value = e.latlng.lng;
-});
-</script>
-{% endblock %}
+from flask import Flask, request, redirect, url_for
+import os
+from werkzeug.utils import secure_filename
+from datetime import datetime
+
+app = Flask(__name__)
+UPLOAD_FOLDER = 'static/uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+@app.route('/new_request', methods=['GET', 'POST'])
+def new_request():
+    if request.method == 'POST':
+        title = request.form['title']
+        description = request.form['description']
+        lat = request.form['lat']
+        lng = request.form['lng']
+        image_file = request.files.get('image')
+
+        filename = None
+        if image_file and image_file.filename != '':
+            filename = secure_filename(f"{datetime.utcnow().timestamp()}_{image_file.filename}")
+            image_file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+
+        # Save all data to database, e.g.:
+        # new_req = Request(title=title, description=description, lat=lat, lng=lng, image=filename)
+        # db.session.add(new_req)
+        # db.session.commit()
+
+        return redirect(url_for('index'))
+
+    return render_template('new_request.html')
