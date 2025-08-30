@@ -1,4 +1,4 @@
-# RoadGuard - Flask Roadside Assistance (Prototype)
+# RoadGuard - Flask Roadside Assistance
 
 Develop a smart, location-aware roadside assistance platform that connects stranded vehicle
 owners with nearby mechanics or towing services in real time. The platform aims to reduce
