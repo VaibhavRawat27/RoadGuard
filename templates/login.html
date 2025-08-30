@@ -1,0 +1,28 @@
+{% extends 'layout.html' %}
+{% block title %}Login{% endblock %}
+{% block content %}
+<div class="card fade-in" style="max-width:500px; margin:0 auto;">
+  <h2>Login</h2>
+  <form method="post" class="mt-16">
+    
+    <div class="mb-8">
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" placeholder="example@mail.com" required>
+    </div>
+    
+    <div class="mb-8">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" placeholder="********" required>
+    </div>
+    
+    <div class="mt-16">
+      <button type="submit" class="btn" style="width:100%;">Login</button>
+    </div>
+    
+  </form>
+  
+  <p class="small-muted center mt-16">Don’t have an account?
+    <a href="{{ url_for('register') }}" class="btn ghost small">Register</a>
+  </p>
+</div>
+{% endblock %}

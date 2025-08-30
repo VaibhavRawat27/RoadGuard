@@ -1,0 +1,27 @@
+{% extends 'layout.html' %}
+{% block title %}Home{% endblock %}
+{% block content %}
+
+{% if current_user.is_authenticated %}
+  <script>
+    // Auto-redirect based on role
+    {% if current_user.role == 'user' %}
+      window.location.href = "{{ url_for('user_dashboard') }}";
+    {% elif current_user.role == 'mechanic' %}
+      window.location.href = "{{ url_for('mechanic_dashboard') }}";
+    {% elif current_user.role == 'admin' %}
+      window.location.href = "{{ url_for('admin_dashboard') }}";
+    {% endif %}
+  </script>
+{% else %}
+  <div class="card fade-in" style="text-align:center;">
+    <h1>Welcome to <span style="color:var(--accent)">RoadGuard</span></h1>
+    <p class="small-muted"></p>
+
+    <!-- <div id="map" style="height:400px; margin-top:20px; border-radius:12px;"></div> -->
+    <p class="small-muted mt-16">Login or Register to raise a service request</p>
+  </div>
+
+{% endif %}
+
+{% endblock %}

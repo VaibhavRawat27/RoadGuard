@@ -1,0 +1,25 @@
+{% extends 'layout.html' %}
+{% block title %}New Request{% endblock %}
+{% block content %}
+<h2>Raise Service Request</h2>
+<form method="post">
+  <label>Title</label><input name="title" required><br>
+  <label>Description</label><textarea name="description"></textarea><br>
+  <input type="hidden" name="lat" id="lat">
+  <input type="hidden" name="lng" id="lng">
+  <p>Click on map to set location:</p>
+  <div id="map" style="height:400px"></div>
+  <button type="submit">Submit</button>
+</form>
+<script>
+var map = L.map('map').setView([28.7041,77.1025], 11);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19}).addTo(map);
+var marker;
+map.on('click', function(e){
+    if(marker) map.removeLayer(marker);
+    marker = L.marker(e.latlng).addTo(map);
+    document.getElementById('lat').value = e.latlng.lat;
+    document.getElementById('lng').value = e.latlng.lng;
+});
+</script>
+{% endblock %}

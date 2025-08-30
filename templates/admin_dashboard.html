@@ -1,0 +1,171 @@
+{% extends 'layout.html' %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block content %}
+
+<div class="card fade-in">
+  <h2>Admin Dashboard</h2>
+  <p class="small-muted">Manage requests and assign tasks to mechanics.</p>
+
+  <!-- Summary cards -->
+  <div class="summary-grid mt-16">
+    <div class="summary-card">
+      <h3>{{ all_requests|length }}</h3>
+      <p>Total Requests</p>
+    </div>
+    <div class="summary-card">
+      <h3>{{ mechanics|length }}</h3>
+      <p>Total Mechanics</p>
+    </div>
+    <div class="summary-card">
+      <h3>{{ users|length }}</h3>
+      <p>Total Users</p>
+    </div>
+  </div>
+
+  <!-- Pending / Rejected requests -->
+  <h3 class="mt-24">⏳ Pending & Rejected Requests</h3>
+  {% if pending %}
+    <ul class="request-list">
+      {% for p in pending %}
+      <li class="list-item">
+        <div>
+          <strong>#{{ p.id }}</strong> — {{ p.title }}
+          {% if p.status == 'rejected' %}
+          <span class="badge rejected">Rejected</span>
+          {% else %}
+          <span class="badge pending">Pending</span>
+          {% endif %}
+        </div>
+        <form method="post" action="{{ url_for('admin_assign') }}" class="assign-form">
+          <input type="hidden" name="req_id" value="{{ p.id }}">
+          <select name="mech_id" required>
+            <option value="">-- Assign Mechanic --</option>
+            {% for m in mechanics %}
+              <option value="{{ m.id }}">{{ m.name }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="btn small">Assign</button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="empty">No pending or rejected requests 🎉</div>
+  {% endif %}
+
+  <!-- Recent requests -->
+  <h3 class="mt-24">📋 Recent Requests</h3>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Title</th>
+          <th>Status</th>
+          <th>User</th>
+          <th>Mechanic</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for r in all_requests %}
+      <tr>
+        <td>#{{ r.id }}</td>
+        <td>{{ r.title }}</td>
+        <td><span class="badge {{ r.status|lower }}">{{ r.status }}</span></td>
+        <td>{{ r.user.name if r.user else "—" }}</td>
+        <td>{{ r.mechanic.name if r.mechanic else "—" }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<style>
+/* Summary cards */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+  gap: 16px;
+}
+.summary-card {
+  background: var(--card);
+  text-align: center;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+.summary-card h3 {
+  margin: 0;
+  font-size: 24px;
+  color: var(--accent);
+}
+.summary-card p {
+  margin: 4px 0 0;
+  color: var(--muted);
+}
+
+/* Request list */
+.request-list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.request-list .list-item {
+  background: var(--card);
+  padding: 12px;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.assign-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.assign-form select {
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid #cfd9e3;
+}
+
+/* Table */
+.table-wrapper {
+  margin-top: 12px;
+  overflow-x: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+}
+table th, table td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+table th {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* Badges */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.badge.pending { background-color: #facc15; color: #78350f; }
+.badge.rejected { background-color: #f87171; color: #7f1d1d; }
+.badge.accepted { background-color: #4ade80; color: #166534; }
+.badge.enroute { background-color: #38bdf8; color: #0c4a6e; }
+.badge.completed { background-color: #a3e635; color: #365314; }
+</style>
+
+{% endblock %}

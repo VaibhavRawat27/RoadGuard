@@ -1,0 +1,165 @@
+{% extends 'layout.html' %}
+{% block title %}Mechanic Dashboard{% endblock %}
+{% block content %}
+
+<div class="card fade-in">
+  <h2>Mechanic Dashboard</h2>
+  <p class="small-muted">Manage and respond to your assigned service requests.</p>
+
+  <!-- Summary Counters -->
+  <div class="status-counters mt-16">
+    <div class="counter-box pending">🕒 Pending <span>{{ assigned|selectattr("status","equalto","pending")|list|length }}</span></div>
+    <div class="counter-box accepted">✅ Accepted <span>{{ assigned|selectattr("status","equalto","accepted")|list|length }}</span></div>
+    <div class="counter-box enroute">🚗 Enroute <span>{{ assigned|selectattr("status","equalto","enroute")|list|length }}</span></div>
+    <div class="counter-box completed">✔️ Completed <span>{{ assigned|selectattr("status","equalto","completed")|list|length }}</span></div>
+    <div class="counter-box rejected">❌ Rejected <span>{{ assigned|selectattr("status","equalto","rejected")|list|length }}</span></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs mt-16">
+    <button class="tab-btn active" onclick="openTab(event, 'pending')">🕒 Pending</button>
+    <button class="tab-btn" onclick="openTab(event, 'accepted')">✅ Accepted</button>
+    <button class="tab-btn" onclick="openTab(event, 'enroute')">🚗 Enroute</button>
+    <button class="tab-btn" onclick="openTab(event, 'completed')">✔️ Completed</button>
+    <button class="tab-btn" onclick="openTab(event, 'rejected')">❌ Rejected</button>
+  </div>
+
+  <!-- Tab Contents -->
+  {% for status in ['pending','accepted','enroute','completed','rejected'] %}
+  <div id="{{ status }}" class="tab-content mt-16 {% if status == 'pending' %}active{% else %}hidden{% endif %}">
+    {% set tasks = assigned|selectattr("status","equalto",status)|list %}
+    {% if tasks %}
+      <div class="task-list">
+        {% for a in tasks %}
+        <div class="task-card">
+          <div class="task-header">
+            <h3>#{{ a.id }} — {{ a.title }}</h3>
+            <span class="badge {{ a.status|lower }}">{{ a.status }}</span>
+          </div>
+          <p class="desc">{{ a.description or "No description provided." }}</p>
+          <p class="small-muted">
+            📍 {{ "%.4f"|format(a.lat) }}, {{ "%.4f"|format(a.lng) }} <br>
+            Submitted: {{ a.created_at.strftime('%Y-%m-%d %H:%M') }}
+          </p>
+
+          {% if status not in ['completed','rejected'] %}
+          <form method="post" action="{{ url_for('mechanic_respond', req_id=a.id) }}" class="respond-form mt-12">
+            <div class="form-row">
+              <select name="action" required>
+                <option value="">-- Select Action --</option>
+                <option value="accept">✅ Accept</option>
+                <option value="reject">❌ Reject</option>
+                <option value="start">🚗 Start / Enroute</option>
+                <option value="complete">✔️ Complete</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <input name="comment" placeholder="Add a comment (optional)">
+            </div>
+            <button type="submit" class="btn small">Submit</button>
+          </form>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty">No {{ status }} tasks.</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Tabs Script -->
+<script>
+function openTab(evt, tabId) {
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(tabId).classList.remove('hidden');
+  evt.currentTarget.classList.add('active');
+}
+</script>
+
+<style>
+/* Counters */
+.status-counters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.counter-box {
+  flex: 1;
+  padding: 12px;
+  border-radius: 10px;
+  background: #f8fafc;
+  text-align: center;
+  font-weight: 600;
+  color: #334155;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+.counter-box span {
+  display: block;
+  font-size: 20px;
+  margin-top: 4px;
+  font-weight: 700;
+  color: #1d70f7;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.tab-btn {
+  flex: 1;
+  padding: 10px;
+  background: transparent;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--muted);
+  transition: all 0.2s;
+}
+.tab-btn.active {
+  color: #1d70f7;
+  border-bottom: 3px solid #1d70f7;
+}
+.tab-btn:hover { color: #1d70f7; }
+
+/* Tab content */
+.tab-content.hidden { display: none; }
+
+/* Task list */
+.task-list { display: flex; flex-direction: column; gap: 16px; }
+.task-card {
+  background: #fff;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+}
+.task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.task-header h3 { margin: 0; font-size: 16px; }
+.task-card .desc { margin: 8px 0; color: var(--muted); }
+
+/* Form */
+.respond-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.respond-form select, .respond-form input {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #cfd9e3;
+  border-radius: 8px;
+}
+.respond-form button { padding: 8px 16px; }
+</style>
+
+{% endblock %}

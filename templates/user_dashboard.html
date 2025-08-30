@@ -1,0 +1,165 @@
+{% extends 'layout.html' %}
+{% block title %}User Dashboard{% endblock %}
+{% block content %}
+
+<div class="card fade-in">
+  <h2>User Dashboard</h2>
+
+  <!-- Tabs -->
+  <div class="tabs mt-16">
+    <button class="tab-btn active" onclick="openTab(event, 'requests')">📋 My Requests</button>
+    <button class="tab-btn" onclick="openTab(event, 'new')">➕ New Request</button>
+    <button class="tab-btn" onclick="openTab(event, 'profile')">👤 Profile</button>
+  </div>
+
+  <!-- Tab Content: My Requests -->
+  <div id="requests" class="tab-content active mt-16">
+    {% if requests %}
+      <ul class="simple">
+        {% for r in requests %}
+        <li class="list-item">
+          <div>
+            <strong>#{{ r.id }}</strong> — {{ r.title }}  
+            <span class="badge {{ r.status|lower }}">{{ r.status }}</span>
+          </div>
+          <a href="{{ url_for('request_detail', req_id=r.id) }}" class="btn small">View</a>
+        </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="empty">No requests yet.</div>
+    {% endif %}
+  </div>
+
+  <!-- Tab Content: Create New Request -->
+  <div id="new" class="tab-content mt-16" style="display:none;">
+    <form method="post" action="{{ url_for('new_request') }}" enctype="multipart/form-data">
+      
+      <div class="mb-8">
+        <label for="title">Title</label>
+        <input id="title" name="title" required placeholder="Flat tire, engine issue, etc.">
+      </div>
+
+      <div class="mb-8">
+        <label for="issue_type">Issue Type</label>
+        <select id="issue_type" name="issue_type" required>
+          <option value="Flat Tire">Flat Tire</option>
+          <option value="Engine Failure">Engine Failure</option>
+          <option value="Battery Dead">Battery Dead</option>
+          <option value="Accident">Accident</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <div class="mb-8">
+        <label for="description">Description</label>
+        <textarea id="description" name="description" placeholder="Describe the issue in detail..."></textarea>
+      </div>
+
+      <div class="mb-8">
+        <label for="image">Upload Image (optional)</label>
+        <input id="image" name="image" type="file" accept="image/*">
+      </div>
+
+      <input type="hidden" name="lat" id="lat">
+      <input type="hidden" name="lng" id="lng">
+
+      <div class="mb-8">
+        <p><strong>Location:</strong></p>
+        <button type="button" class="btn small" onclick="getLocation()">📍 Use My Location</button>
+        <p id="loc-status" class="small-muted mt-8">Not detected yet. Click to detect.</p>
+      </div>
+
+      <p>Or click on the map to set location:</p>
+      <div id="map" style="height:300px" class="mb-8"></div>
+
+      <button type="submit" class="btn" style="width:100%;">Submit Request</button>
+    </form>
+  </div>
+
+  <!-- Tab Content: Profile -->
+  <div id="profile" class="tab-content mt-16" style="display:none;">
+<form method="post" action="{{ url_for('update_profile') }}">
+      <div class="mb-8">
+        <label for="name">Name</label>
+        <input id="name" name="name" type="text" value="{{ current_user.name }}">
+      </div>
+      <div class="mb-8">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" value="{{ current_user.email }}">
+      </div>
+      <div class="mb-8">
+        <label for="phone">Phone</label>
+        <input id="phone" name="phone" type="text" value="{{ current_user.phone }}">
+      </div>
+      <button type="submit" class="btn" style="width:100%;">Update Profile</button>
+    </form>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script>
+function openTab(evt, tabId) {
+  document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(tabId).style.display = 'block';
+  evt.currentTarget.classList.add('active');
+}
+
+// Leaflet map
+var map = L.map('map').setView([28.7041,77.1025], 11);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19}).addTo(map);
+var marker;
+map.on('click', function(e){
+  if(marker) map.removeLayer(marker);
+  marker = L.marker(e.latlng).addTo(map);
+  document.getElementById('lat').value = e.latlng.lat;
+  document.getElementById('lng').value = e.latlng.lng;
+});
+
+// Auto-detect location
+function getLocation() {
+  const status = document.getElementById('loc-status');
+  if (navigator.geolocation) {
+    status.innerText = "Detecting location...";
+    navigator.geolocation.getCurrentPosition(function(pos){
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      document.getElementById('lat').value = lat;
+      document.getElementById('lng').value = lng;
+      status.innerText = "Location detected: " + lat.toFixed(4) + ", " + lng.toFixed(4);
+      if(marker) map.removeLayer(marker);
+      marker = L.marker([lat, lng]).addTo(map);
+      map.setView([lat, lng], 13);
+    }, function(){
+      status.innerText = "Failed to detect location. Please click on map.";
+    });
+  } else {
+    status.innerText = "Geolocation not supported.";
+  }
+}
+</script>
+
+<style>
+/* Tabs styling */
+.tabs {
+  display:flex; gap:8px; border-bottom:1px solid rgba(255,255,255,0.06);
+}
+.tab-btn {
+  flex:1;
+  padding:10px;
+  background:transparent;
+  border:none;
+  cursor:pointer;
+  font-weight:600;
+  color:var(--muted);
+  transition: all var(--transition);
+}
+.tab-btn.active {
+  color:var(--text);
+  border-bottom:3px solid var(--accent);
+}
+.tab-btn:hover { color:var(--text) }
+</style>
+
+{% endblock %}

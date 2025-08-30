@@ -1,0 +1,46 @@
+{% extends 'layout.html' %}
+{% block title %}Register{% endblock %}
+{% block content %}
+<div class="card fade-in" style="max-width:500px; margin:0 auto;">
+  <h2>Register</h2>
+  <form method="post" class="mt-16">
+    
+    <div class="mb-8">
+      <label for="name">Name</label>
+      <input id="name" name="name" type="text" placeholder="Enter your full name" required>
+    </div>
+    
+    <div class="mb-8">
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" placeholder="example@mail.com" required>
+    </div>
+    
+    <div class="mb-8">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" placeholder="********" required>
+    </div>
+    
+    <div class="mb-8">
+      <label for="phone">Phone</label>
+      <input id="phone" name="phone" type="text" placeholder="+91 9876543210">
+    </div>
+    
+    <div class="mb-8">
+      <label for="role">Role</label>
+      <select id="role" name="role">
+        <option value="user">User</option>
+        <option value="mechanic">Mechanic</option>
+      </select>
+    </div>
+    
+    <div class="mt-16">
+      <button type="submit" class="btn" style="width:100%;">Register</button>
+    </div>
+    
+  </form>
+  
+  <p class="small-muted center mt-16">Already have an account?
+    <a href="{{ url_for('login') }}" class="btn ghost small">Login</a>
+  </p>
+</div>
+{% endblock %}

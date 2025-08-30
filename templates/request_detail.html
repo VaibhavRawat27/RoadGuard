@@ -1,0 +1,15 @@
+{% extends 'layout.html' %}
+{% block title %}Request #{{ req.id }}{% endblock %}
+{% block content %}
+<h2>Request #{{ req.id }} - {{ req.title }}</h2>
+<p>Status: {{ req.status }}</p>
+<p>Description: {{ req.description }}</p>
+<p>Location:</p>
+<div id="map" style="height:300px"></div>
+{% if mechanic %}<p>Assigned: {{ mechanic.name }} ({{ mechanic.phone }})</p>{% endif %}
+<script>
+var map = L.map('map').setView([{{ req.lat }},{{ req.lng }}], 13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19}).addTo(map);
+L.marker([{{ req.lat }},{{ req.lng }}]).addTo(map);
+</script>
+{% endblock %}
