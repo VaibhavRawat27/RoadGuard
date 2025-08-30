@@ -20,24 +20,12 @@
     {% if requests %}
       <!-- Status Tabs -->
       <div class="status-tabs mb-4">
-        <button class="status-tab active" onclick="filterStatus('all')">
-          All ({{ requests|length }})
-        </button>
-        <button class="status-tab" onclick="filterStatus('submitted')">
-          Pending ({{ requests|selectattr('status','equalto','submitted')|list|length }})
-        </button>
-        <button class="status-tab" onclick="filterStatus('accepted')">
-          Accepted ({{ requests|selectattr('status','equalto','accepted')|list|length }})
-        </button>
-        <button class="status-tab" onclick="filterStatus('enroute')">
-          Enroute ({{ requests|selectattr('status','equalto','enroute')|list|length }})
-        </button>
-        <button class="status-tab" onclick="filterStatus('completed')">
-          Completed ({{ requests|selectattr('status','equalto','completed')|list|length }})
-        </button>
-        <button class="status-tab" onclick="filterStatus('rejected')">
-          Rejected ({{ requests|selectattr('status','equalto','rejected')|list|length }})
-        </button>
+        <button class="status-tab active" onclick="filterStatus('all')">All ({{ requests|length }})</button>
+        <button class="status-tab" onclick="filterStatus('submitted')">Pending ({{ requests|selectattr('status','equalto','submitted')|list|length }})</button>
+        <button class="status-tab" onclick="filterStatus('accepted')">Accepted ({{ requests|selectattr('status','equalto','accepted')|list|length }})</button>
+        <button class="status-tab" onclick="filterStatus('enroute')">Enroute ({{ requests|selectattr('status','equalto','enroute')|list|length }})</button>
+        <button class="status-tab" onclick="filterStatus('completed')">Completed ({{ requests|selectattr('status','equalto','completed')|list|length }})</button>
+        <button class="status-tab" onclick="filterStatus('rejected')">Rejected ({{ requests|selectattr('status','equalto','rejected')|list|length }})</button>
       </div>
 
       <!-- Search -->
@@ -134,7 +122,10 @@
   </div>
 </div>
 
-<!-- Scripts -->
+<!-- Leaflet CSS & JS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
 <script>
 function openTab(evt, tabId) {
   document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
@@ -142,41 +133,70 @@ function openTab(evt, tabId) {
   document.getElementById(tabId).style.display = 'block';
   evt.currentTarget.classList.add('active');
 
-  // Move underline
   const tabsContainer = document.querySelector('.tabs-container .tab-underline');
   const activeBtn = evt.currentTarget;
   tabsContainer.style.width = activeBtn.offsetWidth + 'px';
   tabsContainer.style.left = activeBtn.offsetLeft + 'px';
 }
 
-// Initialize underline position
 window.addEventListener('load', () => {
   const activeBtn = document.querySelector('.tab-btn.active');
   const tabsContainer = document.querySelector('.tabs-container .tab-underline');
   tabsContainer.style.width = activeBtn.offsetWidth + 'px';
   tabsContainer.style.left = activeBtn.offsetLeft + 'px';
 });
+
+// Initialize map
+let map = L.map('map').setView([20.5937, 78.9629], 5);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+
+let marker = L.marker([20.5937, 78.9629], {draggable: true}).addTo(map);
+
+marker.on('dragend', function(e){
+    let pos = marker.getLatLng();
+    document.getElementById('lat').value = pos.lat;
+    document.getElementById('lng').value = pos.lng;
+    document.getElementById('loc-status').innerText = `✅ Location set! Lat: ${pos.lat.toFixed(5)}, Lng: ${pos.lng.toFixed(5)}`;
+});
+
+function getLocation() {
+    if(navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position){
+            let lat = position.coords.latitude;
+            let lng = position.coords.longitude;
+            marker.setLatLng([lat, lng]);
+            map.setView([lat, lng], 14);
+            document.getElementById('lat').value = lat;
+            document.getElementById('lng').value = lng;
+            document.getElementById('loc-status').innerText = "✅ Location detected!";
+        }, function(error){
+            alert("Unable to get location: " + error.message);
+        });
+    } else {
+        alert("Geolocation is not supported by your browser.");
+    }
+}
+
+map.on('click', function(e){
+    let lat = e.latlng.lat;
+    let lng = e.latlng.lng;
+    marker.setLatLng([lat, lng]);
+    document.getElementById('lat').value = lat;
+    document.getElementById('lng').value = lng;
+    document.getElementById('loc-status').innerText = `✅ Location set! Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`;
+});
 </script>
 
-<!-- Styles -->
 <style>
-/* Main Tabs */
+/* Tabs */
 .tabs-container { position: relative; margin-bottom: 16px; }
 .tabs { display:flex; gap:8px; border-bottom:1px solid #444; }
-.tab-btn { flex:1; padding:12px 0; background:transparent; border:none; cursor:pointer; font-weight:600; color:#aaa; transition: all 0.3s; text-align:center; }
-.tab-btn.active { color:#24aaf8; }
-.tab-btn:hover { color:#24aaf8; }
-
-/* Underline animation */
-.tab-underline {
-  position:absolute;
-  bottom:0;
-  left:0;
-  height:3px;
-  background:#00aaff;
-  transition: all 0.3s ease;
-  border-radius:2px;
-}
+.tab-btn { flex:1; padding:12px 0; background:transparent; border:none; cursor:pointer; font-weight:600; color:#aaa; text-align:center; transition:all 0.3s; }
+.tab-btn.active { color:#000; }
+.tab-btn:hover { color:#000; }
+.tab-underline { position:absolute; bottom:0; left:0; height:3px; background:#000; transition: all 0.3s ease; border-radius:2px; }
 
 /* Status Tabs */
 .status-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }

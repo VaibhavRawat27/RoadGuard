@@ -1,31 +1,78 @@
-from flask import Flask, request, redirect, url_for
-import os
-from werkzeug.utils import secure_filename
-from datetime import datetime
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New Service Request</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<style>
+  #map { height: 400px; width: 100%; margin-top: 10px; }
+  .card { background:#fff; border-radius:12px; box-shadow:0 2px 6px rgba(0,0,0,0.1); padding:20px; max-width:700px; margin:0 auto; }
+  .mb-4 { margin-bottom:16px; }
+  input, textarea, select, button { width:100%; padding:10px; border-radius:6px; border:1px solid #ccc; margin-bottom:10px; }
+  button { background:#3b82f6; color:white; border:none; cursor:pointer; font-weight:600; }
+  button:hover { background:#2563eb; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h2>➕ Raise a New Service Request</h2>
 
-app = Flask(__name__)
-UPLOAD_FOLDER = 'static/uploads'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+  <form method="POST">
+    <input type="text" name="title" placeholder="Car Info" required>
+    <select name="issue_type" required>
+      <option>Flat Tire</option>
+      <option>Engine Failure</option>
+      <option>Battery Dead</option>
+      <option>Accident</option>
+      <option>Other</option>
+    </select>
+    <textarea name="description" placeholder="Describe the issue..." rows="4"></textarea>
 
-@app.route('/new_request', methods=['GET', 'POST'])
-def new_request():
-    if request.method == 'POST':
-        title = request.form['title']
-        description = request.form['description']
-        lat = request.form['lat']
-        lng = request.form['lng']
-        image_file = request.files.get('image')
+    <button type="button" onclick="getLocation()">📍 Use My Current Location</button>
+    <p id="loc-status">Location not detected yet.</p>
+    <div id="map"></div>
 
-        filename = None
-        if image_file and image_file.filename != '':
-            filename = secure_filename(f"{datetime.utcnow().timestamp()}_{image_file.filename}")
-            image_file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    <input type="hidden" name="lat" id="lat">
+    <input type="hidden" name="lng" id="lng">
 
-        # Save all data to database, e.g.:
-        # new_req = Request(title=title, description=description, lat=lat, lng=lng, image=filename)
-        # db.session.add(new_req)
-        # db.session.commit()
+    <button type="submit">Submit Request</button>
+  </form>
+</div>
 
-        return redirect(url_for('index'))
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+let map = L.map('map').setView([20.5937, 78.9629], 5); // Default India
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
 
-    return render_template('new_request.html')
+let marker = L.marker([20.5937, 78.9629], {draggable:true}).addTo(map);
+
+marker.on('dragend', function(e) {
+  let pos = marker.getLatLng();
+  document.getElementById('lat').value = pos.lat;
+  document.getElementById('lng').value = pos.lng;
+  document.getElementById('loc-status').innerText = `✅ Location set! Lat: ${pos.lat.toFixed(5)}, Lng: ${pos.lng.toFixed(5)}`;
+});
+
+function getLocation() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(function(position) {
+      let lat = position.coords.latitude;
+      let lng = position.coords.longitude;
+      marker.setLatLng([lat, lng]);
+      map.setView([lat, lng], 14);
+      document.getElementById('lat').value = lat;
+      document.getElementById('lng').value = lng;
+      document.getElementById('loc-status').innerText = "✅ Location detected!";
+    }, function(error) {
+      alert("Unable to get location: " + error.message);
+    });
+  } else {
+    alert("Geolocation is not supported by your browser.");
+  }
+}
+</script>
+</body>
+</html>
