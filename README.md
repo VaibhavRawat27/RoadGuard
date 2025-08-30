@@ -1,11 +1,6 @@
 # RoadGuard - Flask Roadside Assistance (Prototype)
 
-Develop a smart, location-aware roadside assistance platform that connects stranded vehicle
-owners with nearby mechanics or towing services in real time. The platform aims to reduce
-response time, improve communication, and enhance the safety and reliability of breakdown
-support, especially in remote or hazardous areas.
-
-Flask app with 3 roles: admin, user, mechanic.
+Prototype Flask app with 3 roles: admin, user, mechanic.
 Features:
 - Register / Login with role selection (no SMS OTP implemented; placeholder)
 - Users can raise service requests with location (uses Leaflet map)

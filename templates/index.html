@@ -15,12 +15,18 @@
   </script>
 {% else %}
   <div class="card fade-in" style="text-align:center;">
+    <!-- Image at the top -->
+    <img src="{{ url_for('static', filename='images/roadguard.jpg') }}" 
+     alt="RoadGuard Logo" 
+     style="width:250px; max-width:80%; margin-bottom:16px; border-radius:12px;">
+
+
     <h1>Welcome to <span style="color:var(--accent)">RoadGuard</span></h1>
     <p class="small-muted"></p>
-
-    <!-- <div id="map" style="height:400px; margin-top:20px; border-radius:12px;"></div> -->
+    <p>RoadGuard is a smart, reliable roadside assistance platform that connects vehicle owners with verified mechanics in real-time. Whether you face a flat tire, engine trouble, dead battery, or an accident, RoadGuard ensures quick support wherever you are. Users can raise service requests, track the assigned mechanic’s location live, and receive updates until the issue is resolved. Our goal is to provide safe, fast, and convenient roadside help, making vehicle emergencies stress-free.</p>
     <p class="small-muted mt-16">Login or Register to raise a service request</p>
-  </div>
+</div>
+
 
 {% endif %}
 
