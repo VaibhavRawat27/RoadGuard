@@ -4,6 +4,7 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 from datetime import datetime
 import enum, os
 
+# ------------------- APP CONFIG -------------------
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('ROADGUARD_SECRET', 'dev-secret')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///roadguard.db'
@@ -13,9 +14,11 @@ db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
+# Register OTP blueprint
 from otp import otp_bp
-app.register_blueprint(otp_bp)   
-# ---------- MODELS ----------
+app.register_blueprint(otp_bp)
+
+# ------------------- MODELS -------------------
 class Role(enum.Enum):
     USER = "user"
     MECHANIC = "mechanic"
@@ -26,15 +29,14 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120))
     email = db.Column(db.String(120), unique=True)
-    password = db.Column(db.String(120))  # NOTE: store hashed in production
+    password = db.Column(db.String(120))
     role = db.Column(db.String(20), default=Role.USER.value)
     phone = db.Column(db.String(20))
-    
 
 
 class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    role = db.Column(db.String(20))  # user, mechanic, admin
+    role = db.Column(db.String(20))
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     message = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -79,14 +81,13 @@ class ServiceRequest(db.Model):
     user = db.relationship("User", foreign_keys=[user_id], backref="requests_made")
     mechanic = db.relationship("User", foreign_keys=[assigned_mechanic_id], backref="requests_taken")
 
-
-# ---------- LOGIN ----------
+# ------------------- LOGIN MANAGER -------------------
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-# ---------- INIT DB ----------
+# ------------------- INIT DATABASE -------------------
 with app.app_context():
     db.create_all()
     if not User.query.filter_by(email='admin@roadguard.local').first():
@@ -100,30 +101,14 @@ with app.app_context():
         db.session.commit()
 
 
-# ---------- ROUTES ----------
+# ------------------- ROUTES -------------------
+
+# ----- PUBLIC ROUTES -----
 @app.route('/')
 def index():
     return render_template('index.html')
 
 
-@app.route("/profile/update", methods=["POST"])
-@login_required
-def update_profile():
-    current_user.name = request.form.get("name")
-    current_user.email = request.form.get("email")
-    current_user.phone = request.form.get("phone")
-    db.session.commit()
-    flash("Profile updated successfully ✅", "success")
-
-    if current_user.role == Role.USER.value:
-        return redirect(url_for("user_dashboard"))
-    elif current_user.role == Role.MECHANIC.value:
-        return redirect(url_for("mechanic_dashboard"))
-    else:
-        return redirect(url_for("admin_dashboard"))
-
-
-# ---------- AUTH ----------
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -178,7 +163,25 @@ def logout():
     return redirect(url_for('index'))
 
 
-# ---------- USER ----------
+# ----- PROFILE -----
+@app.route("/profile/update", methods=["POST"])
+@login_required
+def update_profile():
+    current_user.name = request.form.get("name")
+    current_user.email = request.form.get("email")
+    current_user.phone = request.form.get("phone")
+    db.session.commit()
+    flash("Profile updated successfully ✅", "success")
+
+    if current_user.role == Role.USER.value:
+        return redirect(url_for("user_dashboard"))
+    elif current_user.role == Role.MECHANIC.value:
+        return redirect(url_for("mechanic_dashboard"))
+    else:
+        return redirect(url_for("admin_dashboard"))
+
+
+# ----- USER DASHBOARD -----
 @app.route('/user/dashboard')
 @login_required
 def user_dashboard():
@@ -203,24 +206,14 @@ def new_request():
         lat = float(request.form['lat'])
         lng = float(request.form['lng'])
 
-        sr = ServiceRequest(
-            user_id=current_user.id,
-            title=title,
-            description=description,
-            lat=lat,
-            lng=lng
-        )
+        sr = ServiceRequest(user_id=current_user.id, title=title, description=description, lat=lat, lng=lng)
         db.session.add(sr)
         db.session.commit()
 
-        # 🔔 Notify Admin
+        # Notify Admin
         admins = User.query.filter_by(role=Role.ADMIN.value).all()
         for admin in admins:
-            note = Notification(
-                role=Role.ADMIN.value,
-                user_id=admin.id,
-                message=f"New service request #{sr.id} by {current_user.name}"
-            )
+            note = Notification(role=Role.ADMIN.value, user_id=admin.id, message=f"New service request #{sr.id} by {current_user.name}")
             db.session.add(note)
         db.session.commit()
 
@@ -235,11 +228,7 @@ def new_request():
 def request_detail(req_id):
     req = ServiceRequest.query.get_or_404(req_id)
 
-    if not (
-        current_user.role == Role.ADMIN.value
-        or current_user.id == req.user_id
-        or current_user.id == req.assigned_mechanic_id
-    ):
+    if not (current_user.role == Role.ADMIN.value or current_user.id == req.user_id or current_user.id == req.assigned_mechanic_id):
         flash('Unauthorized', 'danger')
         return redirect(url_for('index'))
 
@@ -247,7 +236,7 @@ def request_detail(req_id):
     return render_template('request_detail.html', req=req, mechanic=mechanic)
 
 
-# ---------- ADMIN ----------
+# ----- ADMIN DASHBOARD -----
 @app.route('/admin/dashboard')
 @login_required
 def admin_dashboard():
@@ -271,19 +260,14 @@ def admin_assign():
 
     req_id = request.form.get("req_id")
     mech_id = request.form.get("mech_id")
-
     service_request = ServiceRequest.query.get_or_404(req_id)
     service_request.assigned_mechanic_id = int(mech_id)
     service_request.status = "pending"
     db.session.commit()
 
-    # 🔔 Notify Mechanic
+    # Notify Mechanic
     mech = User.query.get(mech_id)
-    note = Notification(
-        role=Role.MECHANIC.value,
-        user_id=mech.id,
-        message=f"Request #{service_request.id} has been assigned to you."
-    )
+    note = Notification(role=Role.MECHANIC.value, user_id=mech.id, message=f"Request #{service_request.id} has been assigned to you.")
     db.session.add(note)
     db.session.commit()
 
@@ -291,7 +275,7 @@ def admin_assign():
     return redirect(url_for("admin_dashboard"))
 
 
-# ---------- MECHANIC ----------
+# ----- MECHANIC DASHBOARD -----
 @app.route('/mechanic/dashboard')
 @login_required
 def mechanic_dashboard():
@@ -320,43 +304,23 @@ def mechanic_respond(req_id):
 
     if action == "accept":
         req.status = "accepted"
-        # Notify User
-        note = Notification(
-            role=Role.USER.value,
-            user_id=req.user_id,
-            message=f"Your request #{req.id} has been accepted by {current_user.name}."
-        )
+        note = Notification(role=Role.USER.value, user_id=req.user_id, message=f"Your request #{req.id} has been accepted by {current_user.name}.")
         db.session.add(note)
     elif action == "reject":
         req.status = "rejected"
         req.assigned_mechanic_id = None
-        # Notify Admin
         admins = User.query.filter_by(role=Role.ADMIN.value).all()
         for admin in admins:
-            note = Notification(
-                role=Role.ADMIN.value,
-                user_id=admin.id,
-                message=f"Request #{req.id} was rejected by {current_user.name}. Needs reassignment."
-            )
+            note = Notification(role=Role.ADMIN.value, user_id=admin.id, message=f"Request #{req.id} was rejected by {current_user.name}. Needs reassignment.")
             db.session.add(note)
         flash(f"Request #{req.id} rejected. Admin can now reassign it.", "info")
     elif action == "start":
         req.status = "enroute"
-        # Notify User
-        note = Notification(
-            role=Role.USER.value,
-            user_id=req.user_id,
-            message=f"Mechanic {current_user.name} is en route for your request #{req.id}."
-        )
+        note = Notification(role=Role.USER.value, user_id=req.user_id, message=f"Mechanic {current_user.name} is en route for your request #{req.id}.")
         db.session.add(note)
     elif action == "complete":
         req.status = "completed"
-        # Notify User
-        note = Notification(
-            role=Role.USER.value,
-            user_id=req.user_id,
-            message=f"Your request #{req.id} has been completed by {current_user.name}."
-        )
+        note = Notification(role=Role.USER.value, user_id=req.user_id, message=f"Your request #{req.id} has been completed by {current_user.name}.")
         db.session.add(note)
 
     if comment:
@@ -366,7 +330,7 @@ def mechanic_respond(req_id):
     return redirect(url_for("mechanic_dashboard"))
 
 
-# ---------- NOTIFICATIONS ----------
+# ----- NOTIFICATIONS -----
 @app.route('/notifications')
 @login_required
 def notifications():
@@ -374,7 +338,7 @@ def notifications():
     return render_template('notifications.html', notifications=notes)
 
 
-# ---------- API ----------
+# ----- API -----
 @app.route('/api/mechanics')
 def api_mechanics():
     mechanics = User.query.filter_by(role=Role.MECHANIC.value).all()
@@ -390,6 +354,6 @@ def api_mechanics():
     return jsonify(out)
 
 
-# ---------- MAIN ----------
+# ------------------- RUN APP -------------------
 if __name__ == '__main__':
     app.run(debug=True)

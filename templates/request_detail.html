@@ -3,50 +3,156 @@
 {% block title %}Request #{{ req.id }}{% endblock %}
 
 {% block content %}
-<h2>Request #{{ req.id }} - {{ req.title }}</h2>
+<div class="container">
 
-<div class="request-details">
-  {% if req.image %}
-    <div style="text-align:center; margin-bottom:16px;">
-      <img src="{{ url_for('static', filename='uploads/' ~ req.image) }}" 
-           alt="Request Image" 
-           style="max-width:100%; height:auto; border-radius:12px;">
+  <div class="header-section">
+    <h2>Request #{{ req.id }}</h2>
+    <p class="subtitle">{{ req.title }}</p>
+  </div>
+
+  <!-- Request Card -->
+  <div class="request-card">
+    {% if req.image %}
+      <div class="image-container">
+        <img src="{{ url_for('static', filename='uploads/' ~ req.image) }}" alt="Request Image">
+      </div>
+    {% endif %}
+
+    <div class="request-info">
+      <div class="info-row"><span class="label">Title:</span> {{ req.title }}</div>
+      <div class="info-row"><span class="label">Issue Type:</span> {{ req.issue_type if req.issue_type else 'N/A' }}</div>
+      <div class="info-row"><span class="label">Description:</span> {{ req.description }}</div>
+      <div class="info-row"><span class="label">Status:</span> <span class="status {{ req.status | lower }}">{{ req.status }}</span></div>
+      <div class="info-row"><span class="label">Created At:</span> {{ req.created_at.strftime('%d %b %Y %H:%M') }}</div>
+      <div class="info-row"><span class="label">Assigned Mechanic:</span> 
+        {% if mechanic %}
+          {{ mechanic.name }} (<a href="tel:{{ mechanic.phone }}">{{ mechanic.phone }}</a>)
+        {% else %}
+          <em>Not assigned yet</em>
+        {% endif %}
+      </div>
+      {% if req.mechanic_response %}
+        <div class="info-row"><span class="label">Mechanic Response:</span> {{ req.mechanic_response }}</div>
+      {% endif %}
     </div>
-  {% endif %}
+  </div>
 
-  <p><strong>Title:</strong> {{ req.title }}</p>
-  <p><strong>Issue Type:</strong> {{ req.issue_type if req.issue_type else 'N/A' }}</p>
-  <p><strong>Description:</strong> {{ req.description }}</p>
-  <p><strong>Status:</strong> {{ req.status }}</p>
-  <p><strong>Created At:</strong> {{ req.created_at.strftime('%d %b %Y %H:%M') }}</p>
-  {% if mechanic %}
-    <p><strong>Assigned Mechanic:</strong> {{ mechanic.name }} ({{ mechanic.phone }})</p>
-  {% else %}
-    <p><strong>Assigned Mechanic:</strong> Not assigned yet</p>
-  {% endif %}
-  {% if req.mechanic_response %}
-    <p><strong>Mechanic Response:</strong> {{ req.mechanic_response }}</p>
-  {% endif %}
+  <!-- Location Map -->
+  <div class="map-section">
+    <h3>Location</h3>
+    <div id="map"></div>
+  </div>
+
 </div>
 
-<h3>Location:</h3>
-<div id="map" style="height:300px;"></div>
-
+<!-- Leaflet Map Script -->
 <script>
-  var map = L.map('map').setView([{{ req.lat }}, {{ req.lng }}], 13);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
-  L.marker([{{ req.lat }}, {{ req.lng }}]).addTo(map);
+  var map = L.map('map').setView([{{ req.lat }}, {{ req.lng }}], 15);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+  }).addTo(map);
+
+  var marker = L.marker([{{ req.lat }}, {{ req.lng }}]).addTo(map);
+  var popupContent = `
+    <strong>Request #{{ req.id }}</strong><br>
+    {{ req.title }}<br>
+    {% if mechanic %}
+      <hr>
+      <strong>Mechanic:</strong> {{ mechanic.name }}<br>
+      <strong>Phone:</strong> {{ mechanic.phone }}
+    {% else %}
+      <em>No mechanic assigned yet</em>
+    {% endif %}
+  `;
+  marker.bindPopup(popupContent).openPopup();
 </script>
 
+<!-- Stylish CSS -->
 <style>
-.request-details {
-  background: #f7f7f7;
-  padding: 16px;
-  border-radius: 8px;
-  margin-bottom: 16px;
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #333;
 }
-.request-details p {
-  margin: 6px 0;
+
+.header-section {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.header-section h2 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.header-section .subtitle {
+  color: #666;
+  font-size: 16px;
+}
+
+.request-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  margin-bottom: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.image-container img {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  object-fit: cover;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.request-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 15px;
+}
+
+.label {
+  font-weight: 600;
+  color: #555;
+}
+
+.status {
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.status.pending { background: #f0ad4e; }
+.status.completed { background: #5cb85c; }
+.status.inprogress { background: #0275d8; }
+.status.cancelled { background: #d9534f; }
+
+.map-section {
+  margin-top: 16px;
+}
+
+#map {
+  width: 100%;
+  height: 400px;
+  border-radius: 16px;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.08);
 }
 </style>
 {% endblock %}

@@ -5,27 +5,71 @@
 <div class="card fade-in">
   <h2>User Dashboard</h2>
 
-  <!-- Tabs -->
-  <div class="tabs mt-16">
-    <button class="tab-btn active" onclick="openTab(event, 'requests')">📋 My Requests</button>
-    <button class="tab-btn" onclick="openTab(event, 'new')">➕ New Request</button>
-    <button class="tab-btn" onclick="openTab(event, 'profile')">👤 Profile</button>
+  <!-- Main Tabs -->
+  <div class="tabs-container mt-16">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="openTab(event, 'requests')">📋 My Requests</button>
+      <button class="tab-btn" onclick="openTab(event, 'new')">➕ New Request</button>
+      <button class="tab-btn" onclick="openTab(event, 'profile')">👤 Profile</button>
+    </div>
+    <div class="tab-underline"></div>
   </div>
 
   <!-- Tab Content: My Requests -->
   <div id="requests" class="tab-content active mt-16">
     {% if requests %}
-      <ul class="simple">
-        {% for r in requests %}
-        <li class="list-item">
-          <div>
-            <strong>#{{ r.id }}</strong> — {{ r.title }}  
-            <span class="badge {{ r.status|lower }}">{{ r.status }}</span>
-          </div>
-          <a href="{{ url_for('request_detail', req_id=r.id) }}" class="btn small">View</a>
-        </li>
-        {% endfor %}
-      </ul>
+      <!-- Status Tabs -->
+      <div class="status-tabs mb-4">
+        <button class="status-tab active" onclick="filterStatus('all')">
+          All ({{ requests|length }})
+        </button>
+        <button class="status-tab" onclick="filterStatus('submitted')">
+          Pending ({{ requests|selectattr('status','equalto','submitted')|list|length }})
+        </button>
+        <button class="status-tab" onclick="filterStatus('accepted')">
+          Accepted ({{ requests|selectattr('status','equalto','accepted')|list|length }})
+        </button>
+        <button class="status-tab" onclick="filterStatus('enroute')">
+          Enroute ({{ requests|selectattr('status','equalto','enroute')|list|length }})
+        </button>
+        <button class="status-tab" onclick="filterStatus('completed')">
+          Completed ({{ requests|selectattr('status','equalto','completed')|list|length }})
+        </button>
+        <button class="status-tab" onclick="filterStatus('rejected')">
+          Rejected ({{ requests|selectattr('status','equalto','rejected')|list|length }})
+        </button>
+      </div>
+
+      <!-- Search -->
+      <div class="mb-4">
+        <input type="text" id="searchInput" placeholder="Search requests..." class="search-input" onkeyup="filterTable()">
+      </div>
+
+      <!-- Requests Table -->
+      <div class="table-wrapper">
+        <table class="request-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Title</th>
+              <th>Status</th>
+              <th>Mechanic</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="requestTableBody">
+            {% for r in requests %}
+            <tr data-status="{{ r.status|lower }}">
+              <td>#{{ r.id }}</td>
+              <td>{{ r.title }}</td>
+              <td><span class="badge {{ r.status|lower }}">{{ r.status }}</span></td>
+              <td>{% if r.mechanic %}{{ r.mechanic.name }}{% else %}-{% endif %}</td>
+              <td><a href="{{ url_for('request_detail', req_id=r.id) }}" class="btn small no-underline">View</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     {% else %}
       <div class="empty">No requests yet.</div>
     {% endif %}
@@ -34,12 +78,10 @@
   <!-- Tab Content: Create New Request -->
   <div id="new" class="tab-content mt-16" style="display:none;">
     <form method="post" action="{{ url_for('new_request') }}" enctype="multipart/form-data">
-      
       <div class="mb-8">
         <label for="title">Car info</label>
         <input id="title" name="title" required placeholder="Please specify your car info.">
       </div>
-
       <div class="mb-8">
         <label for="issue_type">Issue Type</label>
         <select id="issue_type" name="issue_type" required>
@@ -50,17 +92,14 @@
           <option value="Other">Other</option>
         </select>
       </div>
-
       <div class="mb-8">
         <label for="description">Description</label>
         <textarea id="description" name="description" placeholder="Describe the issue in detail..."></textarea>
       </div>
-
       <div class="mb-8">
         <label for="image">Upload Image (optional)</label>
         <input id="image" name="image" type="file" accept="image/*">
       </div>
-
       <input type="hidden" name="lat" id="lat">
       <input type="hidden" name="lng" id="lng">
 
@@ -69,17 +108,15 @@
         <button type="button" class="btn small" onclick="getLocation()">📍 Use My Location</button>
         <p id="loc-status" class="small-muted mt-8">Not detected yet. Click to detect.</p>
       </div>
-
       <p>Or click on the map to set location:</p>
       <div id="map" style="height:300px" class="mb-8"></div>
-
       <button type="submit" class="btn" style="width:100%;">Submit Request</button>
     </form>
   </div>
 
   <!-- Tab Content: Profile -->
   <div id="profile" class="tab-content mt-16" style="display:none;">
-<form method="post" action="{{ url_for('update_profile') }}">
+    <form method="post" action="{{ url_for('update_profile') }}">
       <div class="mb-8">
         <label for="name">Name</label>
         <input id="name" name="name" type="text" value="{{ current_user.name }}">
@@ -104,62 +141,58 @@ function openTab(evt, tabId) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(tabId).style.display = 'block';
   evt.currentTarget.classList.add('active');
+
+  // Move underline
+  const tabsContainer = document.querySelector('.tabs-container .tab-underline');
+  const activeBtn = evt.currentTarget;
+  tabsContainer.style.width = activeBtn.offsetWidth + 'px';
+  tabsContainer.style.left = activeBtn.offsetLeft + 'px';
 }
 
-// Leaflet map
-var map = L.map('map').setView([28.7041,77.1025], 11);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19}).addTo(map);
-var marker;
-map.on('click', function(e){
-  if(marker) map.removeLayer(marker);
-  marker = L.marker(e.latlng).addTo(map);
-  document.getElementById('lat').value = e.latlng.lat;
-  document.getElementById('lng').value = e.latlng.lng;
+// Initialize underline position
+window.addEventListener('load', () => {
+  const activeBtn = document.querySelector('.tab-btn.active');
+  const tabsContainer = document.querySelector('.tabs-container .tab-underline');
+  tabsContainer.style.width = activeBtn.offsetWidth + 'px';
+  tabsContainer.style.left = activeBtn.offsetLeft + 'px';
 });
-
-// Auto-detect location
-function getLocation() {
-  const status = document.getElementById('loc-status');
-  if (navigator.geolocation) {
-    status.innerText = "Detecting location...";
-    navigator.geolocation.getCurrentPosition(function(pos){
-      const lat = pos.coords.latitude;
-      const lng = pos.coords.longitude;
-      document.getElementById('lat').value = lat;
-      document.getElementById('lng').value = lng;
-      status.innerText = "Location detected: " + lat.toFixed(4) + ", " + lng.toFixed(4);
-      if(marker) map.removeLayer(marker);
-      marker = L.marker([lat, lng]).addTo(map);
-      map.setView([lat, lng], 13);
-    }, function(){
-      status.innerText = "Failed to detect location. Please click on map.";
-    });
-  } else {
-    status.innerText = "Geolocation not supported.";
-  }
-}
 </script>
 
+<!-- Styles -->
 <style>
-/* Tabs styling */
-.tabs {
-  display:flex; gap:8px; border-bottom:1px solid rgba(255,255,255,0.06);
+/* Main Tabs */
+.tabs-container { position: relative; margin-bottom: 16px; }
+.tabs { display:flex; gap:8px; border-bottom:1px solid #444; }
+.tab-btn { flex:1; padding:12px 0; background:transparent; border:none; cursor:pointer; font-weight:600; color:#aaa; transition: all 0.3s; text-align:center; }
+.tab-btn.active { color:#24aaf8; }
+.tab-btn:hover { color:#24aaf8; }
+
+/* Underline animation */
+.tab-underline {
+  position:absolute;
+  bottom:0;
+  left:0;
+  height:3px;
+  background:#00aaff;
+  transition: all 0.3s ease;
+  border-radius:2px;
 }
-.tab-btn {
-  flex:1;
-  padding:10px;
-  background:transparent;
-  border:none;
-  cursor:pointer;
-  font-weight:600;
-  color:var(--muted);
-  transition: all var(--transition);
-}
-.tab-btn.active {
-  color:var(--text);
-  border-bottom:3px solid var(--accent);
-}
-.tab-btn:hover { color:var(--text) }
+
+/* Status Tabs */
+.status-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+.status-tab { padding:6px 12px; border:1px solid #333; border-radius:6px; background:transparent; cursor:pointer; font-weight:600; transition: all 0.2s; }
+.status-tab.active { background:#333; color:#fff; }
+.status-tab:hover { background:#555; color:#fff; }
+
+/* Table */
+.table-wrapper { overflow-x:auto; }
+.request-table { width:100%; border-collapse: collapse; }
+.request-table th, .request-table td { padding:10px; border-bottom:1px solid rgba(255,255,255,0.1); text-align:left; }
+.request-table th { background:rgba(255,255,255,0.02); }
+.no-underline { text-decoration:none; }
+
+/* Search Input */
+.search-input { width:100%; padding:8px; border:2px solid black; border-radius:6px; background:var(--bg-alt); color:var(--text); }
 </style>
 
 {% endblock %}
