@@ -20,20 +20,6 @@ class Role(enum.Enum):
     MECHANIC = "mechanic"
     ADMIN = "admin"
 
-# models.py (or wherever your models are)
-class Notification(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    role = db.Column(db.String(20))  # "user", "mechanic", "admin"
-    message = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-# app.py
-@app.route('/notifications')
-@login_required
-def notifications():
-    # Show notifications for the current user's role
-    notes = Notification.query.filter_by(role=current_user.role).order_by(Notification.created_at.desc()).all()
-    return render_template('notifications.html', notifications=notes)
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -43,16 +29,25 @@ class User(UserMixin, db.Model):
     role = db.Column(db.String(20), default=Role.USER.value)
     phone = db.Column(db.String(20))
 
+
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    role = db.Column(db.String(20))  # user, mechanic, admin
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    message = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user = db.relationship("User", backref="notifications")
+
+
 class Workshop(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200))
     description = db.Column(db.Text)
     lat = db.Column(db.Float)
     lng = db.Column(db.Float)
-    status = db.Column(db.String(50), default="open")  # open/closed
+    status = db.Column(db.String(50), default="open")
     rating = db.Column(db.Float, default=0.0)
     owner_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-
     owner = db.relationship("User", backref="owned_workshops")
     reviews = db.relationship("WorkshopReview", backref="workshop", cascade="all, delete-orphan")
 
@@ -64,48 +59,8 @@ class WorkshopReview(db.Model):
     rating = db.Column(db.Integer)
     comment = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
     user = db.relationship("User", backref="workshop_reviews")
 
-@app.route("/workshops")
-@login_required
-def workshops():
-    # Fetch all workshops
-    all_workshops = Workshop.query.all()
-    return render_template("workshops.html", workshops=all_workshops)
-
-
-@app.route("/workshop/<int:w_id>")
-@login_required
-def workshop_detail(w_id):
-    ws = Workshop.query.get_or_404(w_id)
-    return render_template("workshop_detail.html", workshop=ws)
-
-
-@app.route("/workshop/<int:w_id>/review", methods=["POST"])
-@login_required
-def add_review(w_id):
-    ws = Workshop.query.get_or_404(w_id)
-    # Check if user completed service with this workshop
-    completed_services = ServiceRequest.query.filter_by(user_id=current_user.id, status="completed").all()
-    if not completed_services:
-        flash("You can review only after completing a service!", "danger")
-        return redirect(url_for("workshop_detail", w_id=w_id))
-
-    rating = int(request.form.get("rating"))
-    comment = request.form.get("comment")
-
-    review = WorkshopReview(user_id=current_user.id, workshop_id=w_id, rating=rating, comment=comment)
-    db.session.add(review)
-    db.session.commit()
-
-    # Update workshop rating
-    reviews = ws.reviews
-    ws.rating = sum(r.rating for r in reviews)/len(reviews)
-    db.session.commit()
-
-    flash("Review submitted!", "success")
-    return redirect(url_for("workshop_detail", w_id=w_id))
 
 class ServiceRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -119,7 +74,6 @@ class ServiceRequest(db.Model):
     assigned_mechanic_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     mechanic_response = db.Column(db.Text, nullable=True)
 
-    # ✅ Relationships
     user = db.relationship("User", foreign_keys=[user_id], backref="requests_made")
     mechanic = db.relationship("User", foreign_keys=[assigned_mechanic_id], backref="requests_taken")
 
@@ -137,7 +91,7 @@ with app.app_context():
         admin = User(
             name='Admin',
             email='admin@roadguard.local',
-            password='admin',  # TODO: hash in production
+            password='admin',
             role=Role.ADMIN.value
         )
         db.session.add(admin)
@@ -149,18 +103,16 @@ with app.app_context():
 def index():
     return render_template('index.html')
 
+
 @app.route("/profile/update", methods=["POST"])
 @login_required
 def update_profile():
-    # Allow only logged-in users (any role)
     current_user.name = request.form.get("name")
     current_user.email = request.form.get("email")
     current_user.phone = request.form.get("phone")
-
     db.session.commit()
     flash("Profile updated successfully ✅", "success")
 
-    # redirect back to user_dashboard (or mechanic/admin depending on role)
     if current_user.role == Role.USER.value:
         return redirect(url_for("user_dashboard"))
     elif current_user.role == Role.MECHANIC.value:
@@ -169,6 +121,7 @@ def update_profile():
         return redirect(url_for("admin_dashboard"))
 
 
+# ---------- AUTH ----------
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -258,6 +211,17 @@ def new_request():
         db.session.add(sr)
         db.session.commit()
 
+        # 🔔 Notify Admin
+        admins = User.query.filter_by(role=Role.ADMIN.value).all()
+        for admin in admins:
+            note = Notification(
+                role=Role.ADMIN.value,
+                user_id=admin.id,
+                message=f"New service request #{sr.id} by {current_user.name}"
+            )
+            db.session.add(note)
+        db.session.commit()
+
         flash('Service request submitted', 'success')
         return redirect(url_for('user_dashboard'))
 
@@ -269,7 +233,6 @@ def new_request():
 def request_detail(req_id):
     req = ServiceRequest.query.get_or_404(req_id)
 
-    # authorization: user who created, assigned mechanic, or admin can view
     if not (
         current_user.role == Role.ADMIN.value
         or current_user.id == req.user_id
@@ -308,12 +271,23 @@ def admin_assign():
     mech_id = request.form.get("mech_id")
 
     service_request = ServiceRequest.query.get_or_404(req_id)
-    service_request.assigned_mechanic_id = int(mech_id)   # ✅ FIX HERE
-    service_request.status = "pending"  # better than "assigned", since mechanic acts next
+    service_request.assigned_mechanic_id = int(mech_id)
+    service_request.status = "pending"
+    db.session.commit()
+
+    # 🔔 Notify Mechanic
+    mech = User.query.get(mech_id)
+    note = Notification(
+        role=Role.MECHANIC.value,
+        user_id=mech.id,
+        message=f"Request #{service_request.id} has been assigned to you."
+    )
+    db.session.add(note)
     db.session.commit()
 
     flash(f"Request #{service_request.id} assigned to mechanic.", "success")
     return redirect(url_for("admin_dashboard"))
+
 
 # ---------- MECHANIC ----------
 @app.route('/mechanic/dashboard')
@@ -344,20 +318,59 @@ def mechanic_respond(req_id):
 
     if action == "accept":
         req.status = "accepted"
+        # Notify User
+        note = Notification(
+            role=Role.USER.value,
+            user_id=req.user_id,
+            message=f"Your request #{req.id} has been accepted by {current_user.name}."
+        )
+        db.session.add(note)
     elif action == "reject":
         req.status = "rejected"
-        req.assigned_mechanic_id = None  # ✅ unassign mechanic
+        req.assigned_mechanic_id = None
+        # Notify Admin
+        admins = User.query.filter_by(role=Role.ADMIN.value).all()
+        for admin in admins:
+            note = Notification(
+                role=Role.ADMIN.value,
+                user_id=admin.id,
+                message=f"Request #{req.id} was rejected by {current_user.name}. Needs reassignment."
+            )
+            db.session.add(note)
         flash(f"Request #{req.id} rejected. Admin can now reassign it.", "info")
     elif action == "start":
         req.status = "enroute"
+        # Notify User
+        note = Notification(
+            role=Role.USER.value,
+            user_id=req.user_id,
+            message=f"Mechanic {current_user.name} is en route for your request #{req.id}."
+        )
+        db.session.add(note)
     elif action == "complete":
         req.status = "completed"
+        # Notify User
+        note = Notification(
+            role=Role.USER.value,
+            user_id=req.user_id,
+            message=f"Your request #{req.id} has been completed by {current_user.name}."
+        )
+        db.session.add(note)
 
     if comment:
         req.mechanic_response = comment
 
     db.session.commit()
     return redirect(url_for("mechanic_dashboard"))
+
+
+# ---------- NOTIFICATIONS ----------
+@app.route('/notifications')
+@login_required
+def notifications():
+    notes = Notification.query.filter_by(user_id=current_user.id).order_by(Notification.created_at.desc()).all()
+    return render_template('notifications.html', notifications=notes)
+
 
 # ---------- API ----------
 @app.route('/api/mechanics')

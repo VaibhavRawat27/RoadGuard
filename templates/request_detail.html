@@ -1,15 +1,44 @@
 {% extends 'layout.html' %}
+
 {% block title %}Request #{{ req.id }}{% endblock %}
+
 {% block content %}
 <h2>Request #{{ req.id }} - {{ req.title }}</h2>
-<p>Status: {{ req.status }}</p>
-<p>Description: {{ req.description }}</p>
-<p>Location:</p>
-<div id="map" style="height:300px"></div>
-{% if mechanic %}<p>Assigned: {{ mechanic.name }} ({{ mechanic.phone }})</p>{% endif %}
+
+<div class="request-details">
+  <p><strong>Title:</strong> {{ req.title }}</p>
+  <p><strong>Issue Type:</strong> {{ req.issue_type if req.issue_type else 'N/A' }}</p>
+  <p><strong>Description:</strong> {{ req.description }}</p>
+  <p><strong>Status:</strong> {{ req.status }}</p>
+  <p><strong>Created At:</strong> {{ req.created_at.strftime('%d %b %Y %H:%M') }}</p>
+  {% if mechanic %}
+    <p><strong>Assigned Mechanic:</strong> {{ mechanic.name }} ({{ mechanic.phone }})</p>
+  {% else %}
+    <p><strong>Assigned Mechanic:</strong> Not assigned yet</p>
+  {% endif %}
+  {% if req.mechanic_response %}
+    <p><strong>Mechanic Response:</strong> {{ req.mechanic_response }}</p>
+  {% endif %}
+</div>
+
+<h3>Location:</h3>
+<div id="map" style="height:300px;"></div>
+
 <script>
-var map = L.map('map').setView([{{ req.lat }},{{ req.lng }}], 13);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19}).addTo(map);
-L.marker([{{ req.lat }},{{ req.lng }}]).addTo(map);
+  var map = L.map('map').setView([{{ req.lat }}, {{ req.lng }}], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+  L.marker([{{ req.lat }}, {{ req.lng }}]).addTo(map);
 </script>
+
+<style>
+.request-details {
+  background: #f7f7f7;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+.request-details p {
+  margin: 6px 0;
+}
+</style>
 {% endblock %}
