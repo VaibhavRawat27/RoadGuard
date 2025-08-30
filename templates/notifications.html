@@ -1,0 +1,43 @@
+{% extends 'layout.html' %}
+{% block title %}Notifications{% endblock %}
+{% block content %}
+
+<div class="card fade-in">
+  <h2>Notifications</h2>
+
+  {% if notifications %}
+    <ul class="simple mt-16">
+      {% for n in notifications %}
+        {% if n.role == current_user.role or n.role == 'all' %}
+          <li class="list-item">
+            <div>
+              <strong>{{ n.title }}</strong>
+              <span class="small-muted"> - {{ n.created_at.strftime('%d %b %Y, %H:%M') }}</span>
+            </div>
+            <p>{{ n.message }}</p>
+          </li>
+        {% endif %}
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="empty mt-16">No notifications for your role yet.</div>
+  {% endif %}
+</div>
+
+<style>
+.list-item {
+  padding: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.list-item p {
+  margin-top: 4px;
+  color: var(--muted);
+}
+.empty {
+  padding: 20px;
+  text-align: center;
+  color: var(--muted);
+}
+</style>
+
+{% endblock %}

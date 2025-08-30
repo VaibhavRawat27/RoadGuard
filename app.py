@@ -20,6 +20,20 @@ class Role(enum.Enum):
     MECHANIC = "mechanic"
     ADMIN = "admin"
 
+# models.py (or wherever your models are)
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    role = db.Column(db.String(20))  # "user", "mechanic", "admin"
+    message = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# app.py
+@app.route('/notifications')
+@login_required
+def notifications():
+    # Show notifications for the current user's role
+    notes = Notification.query.filter_by(role=current_user.role).order_by(Notification.created_at.desc()).all()
+    return render_template('notifications.html', notifications=notes)
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -29,6 +43,69 @@ class User(UserMixin, db.Model):
     role = db.Column(db.String(20), default=Role.USER.value)
     phone = db.Column(db.String(20))
 
+class Workshop(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200))
+    description = db.Column(db.Text)
+    lat = db.Column(db.Float)
+    lng = db.Column(db.Float)
+    status = db.Column(db.String(50), default="open")  # open/closed
+    rating = db.Column(db.Float, default=0.0)
+    owner_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+
+    owner = db.relationship("User", backref="owned_workshops")
+    reviews = db.relationship("WorkshopReview", backref="workshop", cascade="all, delete-orphan")
+
+
+class WorkshopReview(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    workshop_id = db.Column(db.Integer, db.ForeignKey('workshop.id'))
+    rating = db.Column(db.Integer)
+    comment = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship("User", backref="workshop_reviews")
+
+@app.route("/workshops")
+@login_required
+def workshops():
+    # Fetch all workshops
+    all_workshops = Workshop.query.all()
+    return render_template("workshops.html", workshops=all_workshops)
+
+
+@app.route("/workshop/<int:w_id>")
+@login_required
+def workshop_detail(w_id):
+    ws = Workshop.query.get_or_404(w_id)
+    return render_template("workshop_detail.html", workshop=ws)
+
+
+@app.route("/workshop/<int:w_id>/review", methods=["POST"])
+@login_required
+def add_review(w_id):
+    ws = Workshop.query.get_or_404(w_id)
+    # Check if user completed service with this workshop
+    completed_services = ServiceRequest.query.filter_by(user_id=current_user.id, status="completed").all()
+    if not completed_services:
+        flash("You can review only after completing a service!", "danger")
+        return redirect(url_for("workshop_detail", w_id=w_id))
+
+    rating = int(request.form.get("rating"))
+    comment = request.form.get("comment")
+
+    review = WorkshopReview(user_id=current_user.id, workshop_id=w_id, rating=rating, comment=comment)
+    db.session.add(review)
+    db.session.commit()
+
+    # Update workshop rating
+    reviews = ws.reviews
+    ws.rating = sum(r.rating for r in reviews)/len(reviews)
+    db.session.commit()
+
+    flash("Review submitted!", "success")
+    return redirect(url_for("workshop_detail", w_id=w_id))
 
 class ServiceRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)

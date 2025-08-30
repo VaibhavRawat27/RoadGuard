@@ -1,7 +1,7 @@
 {% extends 'layout.html' %}
 {% block title %}User Dashboard{% endblock %}
-{% block content %}
 
+{% block content %}
 <div class="card fade-in">
   <h2>User Dashboard</h2>
 
@@ -9,6 +9,7 @@
   <div class="tabs mt-16">
     <button class="tab-btn active" onclick="openTab(event, 'requests')">📋 My Requests</button>
     <button class="tab-btn" onclick="openTab(event, 'new')">➕ New Request</button>
+    <button class="tab-btn" onclick="openTab(event, 'workshops')">🏭 Nearby Workshops</button>
     <button class="tab-btn" onclick="openTab(event, 'profile')">👤 Profile</button>
   </div>
 
@@ -34,7 +35,6 @@
   <!-- Tab Content: Create New Request -->
   <div id="new" class="tab-content mt-16" style="display:none;">
     <form method="post" action="{{ url_for('new_request') }}" enctype="multipart/form-data">
-      
       <div class="mb-8">
         <label for="title">Title</label>
         <input id="title" name="title" required placeholder="Flat tire, engine issue, etc.">
@@ -77,9 +77,34 @@
     </form>
   </div>
 
+  <!-- Tab Content: Workshops -->
+  <div id="workshops" class="tab-content mt-16" style="display:none;">
+    <h3>Nearby Workshops</h3>
+    <div class="filters mt-8">
+      <label>Sort by:</label>
+      <select id="workshop-sort">
+        <option value="nearest">Nearest</option>
+        <option value="rating">Most Rated</option>
+      </select>
+    </div>
+
+    <div id="workshop-list" class="mt-16">
+      <ul class="simple">
+        {% for w in workshops %}
+        <li class="list-item">
+          <strong>{{ w.name }}</strong> — {{ w.status }} | ⭐ {{ "%.1f"|format(w.rating or 0) }}
+          <a href="{{ url_for('workshop_detail', w_id=w.id) }}" class="btn small">View</a>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div id="workshop-map" style="height:400px; margin-top:16px;"></div>
+  </div>
+
   <!-- Tab Content: Profile -->
   <div id="profile" class="tab-content mt-16" style="display:none;">
-<form method="post" action="{{ url_for('update_profile') }}">
+    <form method="post" action="{{ url_for('update_profile') }}">
       <div class="mb-8">
         <label for="name">Name</label>
         <input id="name" name="name" type="text" value="{{ current_user.name }}">
@@ -106,7 +131,7 @@ function openTab(evt, tabId) {
   evt.currentTarget.classList.add('active');
 }
 
-// Leaflet map
+// User Request Map
 var map = L.map('map').setView([28.7041,77.1025], 11);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19}).addTo(map);
 var marker;
@@ -138,6 +163,14 @@ function getLocation() {
     status.innerText = "Geolocation not supported.";
   }
 }
+
+// Workshops Map
+var wmap = L.map('workshop-map').setView([28.7041,77.1025], 11);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19}).addTo(wmap);
+{% for w in workshops %}
+L.marker([{{ w.lat }}, {{ w.lng }}]).addTo(wmap)
+  .bindPopup("<b>{{ w.name }}</b><br>Status: {{ w.status }}<br>⭐ {{ '%.1f'|format(w.rating or 0) }}<br><a href='{{ url_for('workshop_detail', w_id=w.id) }}'>Details</a>");
+{% endfor %}
 </script>
 
 <style>
@@ -160,6 +193,10 @@ function getLocation() {
   border-bottom:3px solid var(--accent);
 }
 .tab-btn:hover { color:var(--text) }
+.filters { margin-bottom:12px; }
+.filters select { margin-left:6px; padding:4px 6px; border-radius:6px; }
+.simple { list-style:none; padding:0; }
+.simple li { background:#fff; padding:8px; border-radius:6px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center; }
 </style>
 
 {% endblock %}
