@@ -13,7 +13,8 @@ db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-
+from otp import otp_bp
+app.register_blueprint(otp_bp)   
 # ---------- MODELS ----------
 class Role(enum.Enum):
     USER = "user"
@@ -28,6 +29,7 @@ class User(UserMixin, db.Model):
     password = db.Column(db.String(120))  # NOTE: store hashed in production
     role = db.Column(db.String(20), default=Role.USER.value)
     phone = db.Column(db.String(20))
+    
 
 
 class Notification(db.Model):
