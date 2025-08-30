@@ -5,6 +5,12 @@ owners with nearby mechanics or towing services in real time. The platform aims 
 response time, improve communication, and enhance the safety and reliability of breakdown
 support, especially in remote or hazardous areas
 
+Target Users:
+1. Vehicle Owners and Travelers: Individuals who drive personal or rental vehicles and may
+face unexpected breakdowns.
+2. Mechanics and Towing Service Providers (Owner of mechanic shop)
+3. Mechanics or Employee of mechanic shop
+
 Prototype Flask app with 3 roles: admin, user, mechanic.
 Features:
 - Register / Login with role selection (no SMS OTP implemented; placeholder)
