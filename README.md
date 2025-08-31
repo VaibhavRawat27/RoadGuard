@@ -200,4 +200,4 @@ If you'd like improvements, bug fixes, or help deploying, open an issue or conta
 
 ## Acknowledgement
 
-I have used AI to build this project.
+I have used AI to build this project & purely created during CGC X Odoo Hackathon on 30th & 31st August 2025.
