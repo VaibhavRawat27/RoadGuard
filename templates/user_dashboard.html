@@ -20,17 +20,17 @@
     {% if requests %}
       <!-- Status Tabs -->
       <div class="status-tabs mb-4">
-        <button class="status-tab active" onclick="filterStatus('all')">All ({{ requests|length }})</button>
-        <button class="status-tab" onclick="filterStatus('submitted')">Pending ({{ requests|selectattr('status','equalto','submitted')|list|length }})</button>
-        <button class="status-tab" onclick="filterStatus('accepted')">Accepted ({{ requests|selectattr('status','equalto','accepted')|list|length }})</button>
-        <button class="status-tab" onclick="filterStatus('enroute')">Enroute ({{ requests|selectattr('status','equalto','enroute')|list|length }})</button>
-        <button class="status-tab" onclick="filterStatus('completed')">Completed ({{ requests|selectattr('status','equalto','completed')|list|length }})</button>
-        <button class="status-tab" onclick="filterStatus('rejected')">Rejected ({{ requests|selectattr('status','equalto','rejected')|list|length }})</button>
+        <button class="status-tab active" onclick="setStatusFilter('all')">All ({{ requests|length }})</button>
+        <button class="status-tab" onclick="setStatusFilter('submitted')">Pending ({{ requests|selectattr('status','equalto','submitted')|list|length }})</button>
+        <button class="status-tab" onclick="setStatusFilter('accepted')">Accepted ({{ requests|selectattr('status','equalto','accepted')|list|length }})</button>
+        <button class="status-tab" onclick="setStatusFilter('enroute')">Enroute ({{ requests|selectattr('status','equalto','enroute')|list|length }})</button>
+        <button class="status-tab" onclick="setStatusFilter('completed')">Completed ({{ requests|selectattr('status','equalto','completed')|list|length }})</button>
+        <button class="status-tab" onclick="setStatusFilter('rejected')">Rejected ({{ requests|selectattr('status','equalto','rejected')|list|length }})</button>
       </div>
 
       <!-- Search -->
       <div class="mb-4">
-        <input type="text" id="searchInput" placeholder="Search requests..." class="search-input" onkeyup="filterTable()">
+        <input type="text" id="searchInput" placeholder="Search requests..." class="search-input" onkeyup="applyFilters()">
       </div>
 
       <!-- Requests Table -->
@@ -127,26 +127,27 @@
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
+// ---------------- Tabs ----------------
 function openTab(evt, tabId) {
-  document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById(tabId).style.display = 'block';
-  evt.currentTarget.classList.add('active');
+    document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(tabId).style.display = 'block';
+    evt.currentTarget.classList.add('active');
 
-  const tabsContainer = document.querySelector('.tabs-container .tab-underline');
-  const activeBtn = evt.currentTarget;
-  tabsContainer.style.width = activeBtn.offsetWidth + 'px';
-  tabsContainer.style.left = activeBtn.offsetLeft + 'px';
+    const tabsContainer = document.querySelector('.tabs-container .tab-underline');
+    const activeBtn = evt.currentTarget;
+    tabsContainer.style.width = activeBtn.offsetWidth + 'px';
+    tabsContainer.style.left = activeBtn.offsetLeft + 'px';
 }
 
 window.addEventListener('load', () => {
-  const activeBtn = document.querySelector('.tab-btn.active');
-  const tabsContainer = document.querySelector('.tabs-container .tab-underline');
-  tabsContainer.style.width = activeBtn.offsetWidth + 'px';
-  tabsContainer.style.left = activeBtn.offsetLeft + 'px';
+    const activeBtn = document.querySelector('.tab-btn.active');
+    const tabsContainer = document.querySelector('.tabs-container .tab-underline');
+    tabsContainer.style.width = activeBtn.offsetWidth + 'px';
+    tabsContainer.style.left = activeBtn.offsetLeft + 'px';
 });
 
-// Initialize map
+// ---------------- Map ----------------
 let map = L.map('map').setView([20.5937, 78.9629], 5);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
@@ -187,6 +188,28 @@ map.on('click', function(e){
     document.getElementById('lng').value = lng;
     document.getElementById('loc-status').innerText = `✅ Location set! Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`;
 });
+
+// ---------------- Filters ----------------
+let currentStatusFilter = 'all';
+
+function setStatusFilter(status) {
+    currentStatusFilter = status;
+    document.querySelectorAll('.status-tab').forEach(tab => tab.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+    applyFilters();
+}
+
+function applyFilters() {
+    const searchText = document.getElementById('searchInput').value.toLowerCase();
+    const rows = document.querySelectorAll('#requestTableBody tr');
+
+    rows.forEach(row => {
+        const matchesStatus = currentStatusFilter === 'all' || row.dataset.status === currentStatusFilter;
+        const matchesSearch = row.textContent.toLowerCase().includes(searchText);
+
+        row.style.display = (matchesStatus && matchesSearch) ? '' : 'none';
+    });
+}
 </script>
 
 <style>

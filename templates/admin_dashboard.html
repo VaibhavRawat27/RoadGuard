@@ -29,8 +29,6 @@
     </div>
   </div>
 
-  <br><br>
-
   <!-- Charts -->
   <div class="charts-grid mt-16">
     <div class="chart-card">
@@ -41,9 +39,12 @@
       <h4>Requests Today</h4>
       <canvas id="todayChart"></canvas>
     </div>
+    <div class="chart-card">
+      <h4>Requests per Mechanic</h4>
+      <canvas id="mechanicChart"></canvas>
+    </div>
   </div>
 
-  <br><br>
   <!-- Pending / Rejected requests -->
   <h3 class="mt-24">⏳ Pending & Rejected Requests</h3>
   {% if pending %}
@@ -76,7 +77,6 @@
   {% endif %}
 
   <!-- Recent requests -->
-   <br><br>
   <h3 class="mt-24">📋 Recent Requests</h3>
   <div class="table-wrapper">
     <table>
@@ -106,38 +106,34 @@
 </div>
 
 <!-- Chart.js -->
- <br>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-  // Requests by Status
+  // ---------- Requests by Status ----------
   const statusCtx = document.getElementById('statusChart').getContext('2d');
   const statusChart = new Chart(statusCtx, {
     type: 'bar',
     data: {
-      labels: ['Submitted','Pending','Accepted','Rejected','Enroute','Completed'],
+      labels: ['submitted','pending','accepted','rejected','enroute','completed'],
       datasets: [{
         label: '# of Requests',
         data: [
-          {{ all_requests|selectattr("status","equalto","Submitted")|list|length }},
+          {{ all_requests|selectattr("status","equalto","submitted")|list|length }},
           {{ all_requests|selectattr("status","equalto","pending")|list|length }},
           {{ all_requests|selectattr("status","equalto","accepted")|list|length }},
           {{ all_requests|selectattr("status","equalto","rejected")|list|length }},
           {{ all_requests|selectattr("status","equalto","enroute")|list|length }},
           {{ all_requests|selectattr("status","equalto","completed")|list|length }}
         ],
-        backgroundColor: [
-          '#fbbf24','#facc15','#4ade80','#f87171','#38bdf8','#a3e635'
-        ],
+        backgroundColor: ['#fbbf24','#facc15','#4ade80','#f87171','#38bdf8','#a3e635'],
         borderWidth: 1
       }]
     },
     options: { responsive: true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,precision:0}} }
   });
 
-  <br>
-  // Requests Today (hourly)
+  // ---------- Requests Today ----------
   const todayCtx = document.getElementById('todayChart').getContext('2d');
-  const todayData = new Array(17).fill(0);
+  const todayData = new Array(24).fill(0);
   {% for r in all_requests %}
     {% if r.created_at.date() == datetime.utcnow().date() %}
       todayData[{{ r.created_at.hour }}] += 1;
@@ -153,70 +149,76 @@
         fill: true,
         backgroundColor: 'rgba(59, 130, 246, 0.2)',
         borderColor: '#3b82f6',
-        tension: 0.3
+        tension: 0.3,
+        pointRadius: 4
       }]
     },
-    options: { responsive: true, plugins:{legend:{display:true}}, scales:{y:{beginAtZero:true,precision:0}} }
+    options: { responsive:true, plugins:{legend:{display:true}}, scales:{y:{beginAtZero:true,precision:0}} }
+  });
+
+  // ---------- Requests per Mechanic ----------
+  const mechanicCtx = document.getElementById('mechanicChart').getContext('2d');
+  const mechanicLabels = [
+    {% for m in mechanics %}'{{ m.name }}',{% endfor %}
+  ];
+  const mechanicData = [
+    {% for m in mechanics %}
+      {{ all_requests|selectattr("mechanic","equalto",m)|list|length }},
+    {% endfor %}
+  ];
+  const mechanicChart = new Chart(mechanicCtx, {
+    type: 'pie',
+    data: {
+      labels: mechanicLabels,
+      datasets: [{
+        label: 'Requests per Mechanic',
+        data: mechanicData,
+        backgroundColor: [
+          '#f87171','#fbbf24','#4ade80','#38bdf8','#a3e635','#f472b6','#60a5fa','#fcd34d','#34d399','#818cf8'
+        ]
+      }]
+    },
+    options: { responsive:true, plugins:{legend:{position:'bottom'}} }
   });
 </script>
 
-<!-- CSS Styling -->
+<!-- CSS -->
 <style>
-/* Header, Summary, Requests List, Table, Badges (same as before) */
 .header-section { margin-bottom: 16px; }
 .header-section h2 { margin: 0; font-size: 28px; font-weight: 600; }
 .header-section .small-muted { color: #666; font-size: 14px; margin-top: 4px; }
-.header-actions { display: flex; justify-content: flex-end; margin-top: 12px; }
-.btn.download-btn { background-color: #3b82f6; color: white; padding: 8px 16px; border-radius: 8px; text-decoration: none; font-weight: 600; transition: 0.2s; }
-.btn.download-btn:hover { background-color: #2563eb; }
-.summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 16px; }
-.summary-card { background: var(--card, #fff); text-align: center; padding: 16px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
-.summary-card h3 { margin: 0; font-size: 24px; color: var(--accent, #3b82f6); }
-.summary-card p { margin: 4px 0 0; color: var(--muted, #666); }
-.request-list { list-style: none; padding: 0; margin: 12px 0; display: flex; flex-direction: column; gap: 12px; }
-.request-list .list-item { background: var(--card, #fff); padding: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
-.assign-form { display: flex; gap: 8px; align-items: center; }
-.assign-form select { padding: 6px; border-radius: 6px; margin-right: 5px; border: 1px solid #cfd9e3; }
-.table-wrapper { margin-top: 12px; overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-table th, table td { padding: 8px 12px; text-align: left; border-bottom: 1px solid rgba(0,0,0,0.06); }
-table th { color: var(--muted, #666); font-weight: 600; }
-.badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
-.badge.pending { background-color: #facc15; color: #78350f; }
-.badge.rejected { background-color: #f87171; color: #7f1d1d; }
-.badge.accepted { background-color: #4ade80; color: #166534; }
-.badge.enroute { background-color: #38bdf8; color: #0c4a6e; }
-.badge.completed { background-color: #a3e635; color: #365314; }
-.empty { text-align: center; padding: 16px; color: #666; font-style: italic; }
-<style>
-/* Chart Cards */
-.charts-grid { 
-  display: grid; 
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
-  gap: 24px; 
-  margin-top: 24px; 
-}
-.chart-card { 
-  background: var(--card, #fff); 
-  padding: 16px; 
-  border-radius: 12px; 
-  box-shadow: 0 2px 6px rgba(0,0,0,0.06); 
-}
-.chart-card h4 { 
-  margin-bottom: 12px; 
-  font-size: 16px; /* smaller font */
-  font-weight: 600; 
-}
-.chart-card canvas {
-  width: 100% !important;   /* full width of card */
-  height: 200px !important; /* fixed small height */
-}
+.header-actions { display:flex; justify-content:flex-end; margin-top:12px; }
+.btn.download-btn { background-color:#3b82f6; color:white; padding:8px 16px; border-radius:8px; text-decoration:none; font-weight:600; transition:0.2s; }
+.btn.download-btn:hover { background-color:#2563eb; }
 
+.summary-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); gap:16px; margin-top:16px; }
+.summary-card { background:var(--card,#fff); text-align:center; padding:16px; border-radius:12px; box-shadow:0 2px 6px rgba(0,0,0,0.06); }
+.summary-card h3 { margin:0; font-size:24px; color:var(--accent,#3b82f6); }
+.summary-card p { margin:4px 0 0; color:var(--muted,#666); }
 
-/* Chart Cards */
-.charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px; }
-.chart-card { background: var(--card, #fff); padding: 16px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
-.chart-card h4 { margin-bottom: 12px; font-size: 18px; font-weight: 600; }
+.charts-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(250px,1fr)); gap:24px; margin-top:24px; }
+.chart-card { background:var(--card,#fff); padding:16px; border-radius:12px; box-shadow:0 2px 6px rgba(0,0,0,0.06); }
+.chart-card h4 { margin-bottom:12px; font-size:16px; font-weight:600; }
+.chart-card canvas { width:100% !important; height:200px !important; }
+
+.request-list { list-style:none; padding:0; margin:12px 0; display:flex; flex-direction:column; gap:12px; }
+.request-list .list-item { background:var(--card,#fff); padding:12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; }
+.assign-form { display:flex; gap:8px; align-items:center; }
+.assign-form select { padding:6px; border-radius:6px; margin-right:5px; border:1px solid #cfd9e3; }
+
+.table-wrapper { margin-top:12px; overflow-x:auto; }
+table { width:100%; border-collapse:collapse; margin-top:8px; }
+table th, table td { padding:8px 12px; text-align:left; border-bottom:1px solid rgba(0,0,0,0.06); }
+table th { color:var(--muted,#666); font-weight:600; }
+
+.badge { display:inline-block; padding:2px 8px; border-radius:6px; font-size:12px; font-weight:600; }
+.badge.pending { background-color:#facc15; color:#78350f; }
+.badge.rejected { background-color:#f87171; color:#7f1d1d; }
+.badge.accepted { background-color:#4ade80; color:#166534; }
+.badge.enroute { background-color:#38bdf8; color:#0c4a6e; }
+.badge.completed { background-color:#a3e635; color:#365314; }
+
+.empty { text-align:center; padding:16px; color:#666; font-style:italic; }
 </style>
 
 {% endblock %}
