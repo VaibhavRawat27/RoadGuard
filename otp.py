@@ -10,7 +10,7 @@ otp_bp = Blueprint('otp', __name__)
 SMTP_SERVER = 'smtp.gmail.com'
 SMTP_PORT = 587
 EMAIL_ADDRESS = 'rawatvaibhav27@gmail.com'
-EMAIL_PASSWORD = 'xrwc dsid ggfh wgih'  # Use environment variables in production
+EMAIL_PASSWORD = ''  # Use environment variables in production
 
 # ----------------- Helper -----------------
 def send_email(to_email, otp):
