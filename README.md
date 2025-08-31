@@ -70,7 +70,7 @@ When a vehicle breaks down, a user can raise a service request with their curren
 
 ```bash
 # 1. Clone the repo
-git clone RoadGuard
+git clone https://github.com/VaibhavRawat27/RoadGuard.git
 cd RoadGuard
 
 # 2. Create and activate a virtual environment (recommended)
