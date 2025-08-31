@@ -51,7 +51,18 @@ When a vehicle breaks down, a user can raise a service request with their curren
 
 ## Screenshots
 
-(Images shown in the repository) — example UI screenshots included in `/static` or in the repository root.
+
+<img width="1366" height="720" alt="image" src="https://github.com/user-attachments/assets/2486b508-45fd-49c3-b3a5-fc3528ad539f" />
+
+<img width="1366" height="720" alt="image" src="https://github.com/user-attachments/assets/5dd44fc6-85ba-4059-8f6d-0bb10c7e7305" />
+
+<img width="1366" height="720" alt="image" src="https://github.com/user-attachments/assets/ed4eda97-82d5-4a24-8fdf-c60e58f4305f" />
+
+<img width="1366" height="720" alt="image" src="https://github.com/user-attachments/assets/e37038c5-92be-4598-92f1-ce79f0f78432" />
+
+<img width="1366" height="720" alt="image" src="https://github.com/user-attachments/assets/90576d5a-3c54-4993-9186-149e21b2ff4d" />
+
+<img width="1366" height="720" alt="image" src="https://github.com/user-attachments/assets/1db82075-64a2-46b9-a5f3-88c67caec74c" />
 
 ---
 
