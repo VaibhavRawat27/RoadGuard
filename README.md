@@ -1,5 +1,7 @@
 # RoadGuard - Flask Roadside Assistance
 
+View Video Here -> 
+
 Develop a smart, location-aware roadside assistance platform that connects stranded vehicle
 owners with nearby mechanics or towing services in real time. The platform aims to reduce
 response time, improve communication, and enhance the safety and reliability of breakdown
@@ -23,3 +25,13 @@ Features:
 Notes & placeholders:
 - OTP/SMS and payment gateway integrations are left as placeholders.
 - For production, secure secret key, HTTPS, and proper user verification required.
+
+Demo accounts:
+admin@roadguard.local
+admin
+
+vaibhavrwt27@gmail.com
+123
+
+thestudiocityx@gmail.com
+123
