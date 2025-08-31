@@ -59,7 +59,7 @@ When a vehicle breaks down, a user can raise a service request with their curren
 
 ```bash
 # 1. Clone the repo
-git clone <your-repo-url>
+git clone RoadGuard
 cd RoadGuard
 
 # 2. Create and activate a virtual environment (recommended)
@@ -175,17 +175,6 @@ If you want to switch to PostgreSQL or MySQL for production, set `DATABASE_URL` 
 
 ---
 
-## Contributing
-
-Contributions are welcome. Typical workflow:
-
-1. Fork the repo
-2. Create a feature branch `feature/your-feature`
-3. Commit and open a PR with a clear description
-4. Ensure code is linted and tests (if present) pass
-
----
-
 ## License
 
 This project is provided for educational and prototype use. Add a proper open-source license (MIT/Apache-2.0) if you plan to publish.
@@ -198,4 +187,6 @@ If you'd like improvements, bug fixes, or help deploying, open an issue or conta
 
 ---
 
-*Generated README for the RoadGuard prototype — update any placeholders (secrets, credentials, URLs) before sharing or deploying.*
+## Acknowledgement
+
+I have used AI to build this project.
